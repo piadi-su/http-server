@@ -1,0 +1,7 @@
+1)Server HTTP "Hello World" in C: Creare un socket TCP che risponde con una pagina web o del testo semplice a una richiesta GET.
+
+2)Parsing degli Header e Metodi: Distinguere una richiesta GET da una POST leggendo la prima riga della richiesta HTTP.
+
+3)Gestione del Body per la POST: Estrarre il valore di Content-Length dagli header e leggere dal socket esattamente quel numero di byte per ottenere il body inviato dal client.
+
+4)Risposta in JSON: Rispondere ai client aggiungendo l'header Content-Type: application/json e inviando un body formattato in JSON.
