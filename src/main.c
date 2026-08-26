@@ -1,19 +1,114 @@
 #include <stdlib.h>
 #include <sys/select.h>
 #include <sys/socket.h>
-#include<netinet/in.h>
+#include <netinet/in.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <dirent.h>
 
 #define BUFFER_SIZE 6168
 
+#define DEFAULT_DIR "www"
+#define DEFAULT_PORT 8080
 
-int main(void)
+// TODO: put default port and directory + use args and get files
+
+const char* get_file_info(const char* path)
+{
+	// search for the last point in the path
+	const char *ext = strrchr(path, '.');
+
+	if(!ext) return "text/plain";
+
+	if(strcmp(ext, ".html") == 0 || strcmp(ext, ".htm") == 0) return "text/html; Charset=UTF-8";
+	if(strcmp(ext, ".css") == 0 ) return "text/css";
+	if(strcmp(ext, ".js") == 0 ) return "application/javascript";
+	if(strcmp(ext, ".png") == 0 ) return "image/png";
+	if(strcmp(ext, ".jpg") == 0 || strcmp(ext, ".jpeg") == 0) return "image/jpeg";
+	if(strcmp(ext, ".ico") == 0 ) return "image/x-icon";
+
+	//if the file type isn't here
+	return "text/plain";
+}
+
+
+void print_usage(void)
+{
+	printf("\nusage ./file -p <port number> -f <root site directory>\n");
+	printf("	-h,    show this \n\n");
+}
+
+int main(int argc, char *argv[])
 {
 
-	const int port = 1234;
+
+
+	int port = DEFAULT_PORT;
+	char directory[512] = DEFAULT_DIR;
+
+
+	if(argc == 1){
+		printf("\ndo ./file -h to fort app usage\n\n");
+		return EXIT_FAILURE;
+	}
+
+	if(argc > 1 && strcmp(argv[1], "-h")== 0){
+		print_usage();
+		return EXIT_SUCCESS;
+	}
+	
+
+	for(int i = 0; i < argc; i++)
+	{
+		if(strcmp(argv[i], "-p") == 0){
+			if (i + 1 < argc) {
+				char *endptr;
+				long val = strtol(argv[i + 1], &endptr, 10);
+
+				// Controlla se la conversione è fallita o se la porta non è valida
+				if (*endptr != '\0' || val <= 0 || val > 65535) {
+					fprintf(stderr, "[!] error: the port '%s' needs to be from 1 to 65535\n", argv[i + 1]);
+					return EXIT_FAILURE;
+				}
+			
+				port = (int)val;
+			}
+			else {
+				fprintf(stderr, "[!] error: -p flag requires a port number\n");
+				return EXIT_FAILURE;
+			}
+	   }
+	
+		if(strcmp(argv[i], "-f") == 0)
+		{
+			if(i + 1 < argc){
+
+				DIR *dir = opendir(argv[i+1]);
+				if(dir == NULL){
+					fprintf(stderr, "[!] error: the file path '%s' doesn't exist\n", argv[i + 1]);
+					return EXIT_FAILURE;
+				}
+
+				closedir(dir);
+				
+				strncpy(directory, argv[i + 1], sizeof(directory) -1);
+				directory[sizeof(directory) -1] = '\0';
+			}
+			else {
+				fprintf(stderr, "[!] error: -f flag requires a directory path\n");
+				return EXIT_FAILURE;
+			}
+
+
+		}
+
+	}
+
+
+	//da cambiare
 
 	int server_sock;
 	struct sockaddr_in address;
@@ -61,7 +156,8 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	printf("waiting for connection on http://localhost:%d...\n",port);
+	printf("[+] waiting for connection on http://localhost:%d...\n",port);
+	printf("[+] root dir: %s", directory);
 
 	//select stuff
 	
@@ -147,23 +243,21 @@ int main(void)
 						printf("[+] %s request at: %s\n", method, path);
 
 						//we are olnly going to allow the GET request
-						
 						if(strcmp(method, "GET") == 0)
 						{
-							
 
 							//html body on the browser
 							// da cambiare con  file reading 
-							const char *html_body = 
-								"<!DOCTYPE html>"
-								"<html>"
-								"<head><title>Mio Server C</title></head>"
-								"<body style='font-family: sans-serif; text-align: center; margin-top: 50px;'>"
-								"  <h1 style='color: #2b5797;'>HTML Servito con Successo dal Server C!</h1>"
-								"  <p>Hai effettuato una richiesta <b>GET</b> sulla rotta: <i>%s</i></p>"
-								"</body>"
-								"</html>";
-							
+							// const char *html_body = 
+							// 	"<!DOCTYPE html>"
+							// 	"<html>"
+							// 	"<head><title>Mio Server C</title></head>"
+							// 	"<body style='font-family: sans-serif; text-align: center; margin-top: 50px;'>"
+							// 	"  <h1 style='color: #2b5797;'>HTML Servito con Successo dal Server C!</h1>"
+							// 	"  <p>Hai effettuato una richiesta <b>GET</b> sulla rotta: <i>%s</i></p>"
+							// 	"</body>"
+							// 	"</html>";
+							//
 							
 							//buffer fort the http response
 							char http_response[BUFFER_SIZE * 2];
